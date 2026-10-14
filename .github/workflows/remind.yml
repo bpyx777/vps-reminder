@@ -1,15 +1,24 @@
 name: VPS到期提醒
-
 on:
   schedule:
-    # 每6天早上10点自动提醒一次（北京时间）
-    - cron: '0 2 */6 * *'
+    # 每天早上10点检查，满6天才发
+    - cron: '0 2 * * *'
   workflow_dispatch:
-
 jobs:
   remind:
     runs-on: ubuntu-latest
     steps:
-      - name: 发送Telegram循环提醒
+      - name: 真6天循环提醒
         run: |
-          curl -s -X POST https://api.telegram.org/bot${{ secrets.BOT_TOKEN }}/sendMessage -d chat_id=${{ secrets.CHAT_ID }} -d text="🔄 提醒：6天到了！你的VPS VPS-TDCEKW 快到期了，快去 https://openworld.eu.org/dashboard 关掉VPN点一下续期！续完不用管我，6天后我再提醒你。"
+          # 以今天2026-10-15为起点，每6天提醒一次
+          START="2026-10-15"
+          START_TS=$(date -d "$START" +%s)
+          NOW_TS=$(date +%s)
+          DIFF=$(( (NOW_TS - START_TS) / 86400 ))
+          MOD=$(( DIFF % 6 ))
+          echo "已经过了 $DIFF 天，余数 $MOD"
+          if [ $MOD -eq 0 ]; then
+            curl -s -X POST https://api.telegram.org/bot${{ secrets.BOT_TOKEN }}/sendMessage -d chat_id=${{ secrets.CHAT_ID }} -d text="🔄 6天到了！你的VPS VPS-TDCEKW 该续期了，快去 https://openworld.eu.org/dashboard 关VPN点一下续期！续完不用管，6天后我再提醒你。"
+          else
+            echo "还没到6天，不发"
+          fi
